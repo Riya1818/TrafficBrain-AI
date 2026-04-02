@@ -1,0 +1,114 @@
+{
+  "road_type": "City Road",
+  "speed_limits": {
+    "car": 50,
+    "motorcycle": 50,
+    "bus": 40,
+    "truck": 40
+  },
+  "vehicle_counts": {
+    "bus": 27,
+    "motorcycle": 28,
+    "truck": 115,
+    "car": 96
+  },
+  "total_vehicles": 266,
+  "violations": [
+    {
+      "frame": 322,
+      "track_id": 4,
+      "class": "truck",
+      "speed_kmh": 50.3,
+      "limit_kmh": 40
+    },
+    {
+      "frame": 391,
+      "track_id": 164,
+      "class": "car",
+      "speed_kmh": 67.4,
+      "limit_kmh": 50
+    },
+    {
+      "frame": 485,
+      "track_id": 276,
+      "class": "car",
+      "speed_kmh": 50.3,
+      "limit_kmh": 50
+    },
+    {
+      "frame": 575,
+      "track_id": 329,
+      "class": "car",
+      "speed_kmh": 50.3,
+      "limit_kmh": 50
+    },
+    {
+      "frame": 695,
+      "track_id": 483,
+      "class": "car",
+      "speed_kmh": 50.3,
+      "limit_kmh": 50
+    },
+    {
+      "frame": 810,
+      "track_id": 513,
+      "class": "car",
+      "speed_kmh": 50.3,
+      "limit_kmh": 50
+    },
+    {
+      "frame": 913,
+      "track_id": 624,
+      "class": "car",
+      "speed_kmh": 50.3,
+      "limit_kmh": 50
+    },
+    {
+      "frame": 1009,
+      "track_id": 693,
+      "class": "truck",
+      "speed_kmh": 50.3,
+      "limit_kmh": 40
+    },
+    {
+      "frame": 1244,
+      "track_id": 914,
+      "class": "car",
+      "speed_kmh": 50.3,
+      "limit_kmh": 50
+    },
+    {
+      "frame": 1554,
+      "track_id": 987,
+      "class": "truck",
+      "speed_kmh": 50.3,
+      "limit_kmh": 40
+    },
+    {
+      "frame": 1704,
+      "track_id": 1169,
+      "class": "car",
+      "speed_kmh": 50.3,
+      "limit_kmh": 50
+    },
+    {
+      "frame": 2148,
+      "track_id": 1647,
+      "class": "truck",
+      "speed_kmh": 81.2,
+      "limit_kmh": 40
+    },
+    {
+      "frame": 2651,
+      "track_id": 1875,
+      "class": "truck",
+      "speed_kmh": 45.0,
+      "limit_kmh": 40
+    }
+  ],
+  "speed_stats": {
+    "mean": 58.0,
+    "median": 50.3,
+    "max": 428.3
+  }
+}

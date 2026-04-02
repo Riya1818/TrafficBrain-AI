@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrafficBrain AI — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════
+   TOKENS
+══════════════════════════════════════════════════ */
+:root {
+  --bg:        #080b12;
+  --surface:   #0e1420;
+  --surface2:  #141c2e;
+  --surface3:  #1a2338;
+  --border:    rgba(255,255,255,.07);
+  --border2:   rgba(255,255,255,.13);
+
+  --txt:       #e2e8f4;
+  --txt2:      #8896b0;
+  --txt3:      #4e5e78;
+
+  --blue:      #4fb3ff;
+  --green:     #34d982;
+  --yellow:    #ffc843;
+  --red:       #ff4d6a;
+  --orange:    #ff8c42;
+  --cyan:      #22d3ee;
+  --indigo:    #818cf8;
+
+  --blue-dim:    rgba(79,179,255,.12);
+  --green-dim:   rgba(52,217,130,.12);
+  --yellow-dim:  rgba(255,200,67,.12);
+  --red-dim:     rgba(255,77,106,.12);
+  --indigo-dim:  rgba(129,140,248,.12);
+  --cyan-dim:    rgba(34,211,238,.12);
+
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+}
+
+/* ══════════════════════════════════════════════════
+   RESET + BASE
+══════════════════════════════════════════════════ */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+
+body {
+  background: var(--bg);
+  color: var(--txt);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── scanline grain overlay ── */
+body::after {
+  content:'';
+  position:fixed; inset:0; pointer-events:none; z-index:999;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,.03) 2px,
+    rgba(0,0,0,.03) 4px
+  );
+}
+
+/* ── moving grid ── */
+body::before {
+  content:'';
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(rgba(79,179,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,179,255,.025) 1px, transparent 1px);
+  background-size: 52px 52px;
+  animation: gridDrift 30s linear infinite;
+}
+@keyframes gridDrift {
+  to { background-position: 52px 52px; }
+}
+
+/* ══════════════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════════════ */
+.page {
+  position:relative; z-index:1;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 36px 28px 60px;
+}
+
+/* ══════════════════════════════════════════════════
+   HEADER
+══════════════════════════════════════════════════ */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin-bottom: 44px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header-brand { display:flex; align-items:center; gap:16px; }
+
+.logo-box {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #4fb3ff 0%, #818cf8 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-size: 24px;
+  box-shadow: 0 0 24px rgba(79,179,255,.35);
+  flex-shrink:0;
+  animation: logoPulse 3s ease-in-out infinite;
+}
+@keyframes logoPulse {
+  0%,100% { box-shadow: 0 0 24px rgba(79,179,255,.35); }
+  50%      { box-shadow: 0 0 40px rgba(79,179,255,.6); }
+}
+
+.brand-name {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  background: linear-gradient(90deg, #e2e8f4 30%, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.brand-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--txt3);
+  margin-top: 3px;
+  letter-spacing: .04em;
+}
+
+.header-right { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+
+.road-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  padding: 6px 16px;
+  border-radius: 99px;
+  background: var(--indigo-dim);
+  border: 1px solid rgba(129,140,248,.3);
+  color: var(--indigo);
+}
+.live-dot {
+  display:flex; align-items:center; gap:6px;
+  font-family: var(--mono); font-size: 10px; color: var(--txt3);
+}
+.live-dot::before {
+  content:'';
+  width:6px; height:6px; border-radius:50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: blink 1.4s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ══════════════════════════════════════════════════
+   DEMO BANNER
+══════════════════════════════════════════════════ */
+.demo-banner {
+  display:none;
+  margin-bottom:28px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,200,67,.25);
+  background: rgba(255,200,67,.06);
+  font-size: 13px;
+  color: var(--yellow);
+  font-family: var(--mono);
+}
+.demo-banner.show { display:flex; align-items:center; gap:10px; }
+.demo-banner::before { content:'⚠'; font-size:16px; }
+
+/* ══════════════════════════════════════════════════
+   KPI STRIP
+══════════════════════════════════════════════════ */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+@media(max-width:1100px){ .kpi-strip { grid-template-columns: repeat(3,1fr); } }
+@media(max-width:640px){  .kpi-strip { grid-template-columns: repeat(2,1fr); } }
+
+.kpi {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 18px 16px;
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: riseIn .5s cubic-bezier(.22,.68,0,1.2) forwards;
+}
+@keyframes riseIn {
+  to { opacity:1; transform:translateY(0); }
+}
+.kpi:nth-child(1){animation-delay:.05s}
+.kpi:nth-child(2){animation-delay:.10s}
+.kpi:nth-child(3){animation-delay:.15s}
+.kpi:nth-child(4){animation-delay:.20s}
+.kpi:nth-child(5){animation-delay:.25s}
+.kpi:nth-child(6){animation-delay:.30s}
+
+.kpi::before {
+  content:'';
+  position:absolute; bottom:0; left:0; right:0; height:3px;
+  opacity:.8;
+}
+.kpi.c-green::before  { background:var(--green); }
+.kpi.c-red::before    { background:var(--red); }
+.kpi.c-cyan::before   { background:var(--cyan); }
+.kpi.c-yellow::before { background:var(--yellow); }
+.kpi.c-blue::before   { background:var(--blue); }
+.kpi.c-indigo::before { background:var(--indigo); }
+
+.kpi::after {
+  content:'';
+  position:absolute; top:-20px; right:-20px;
+  width:80px; height:80px; border-radius:50%;
+  opacity:.06;
+}
+.kpi.c-green::after  { background:var(--green); }
+.kpi.c-red::after    { background:var(--red); }
+.kpi.c-cyan::after   { background:var(--cyan); }
+.kpi.c-yellow::after { background:var(--yellow); }
+.kpi.c-blue::after   { background:var(--blue); }
+.kpi.c-indigo::after { background:var(--indigo); }
+
+.kpi-icon { font-size: 20px; margin-bottom: 10px; }
+.kpi-val {
+  font-family: var(--mono);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.kpi.c-green  .kpi-val { color: var(--green); }
+.kpi.c-red    .kpi-val { color: var(--red); }
+.kpi.c-cyan   .kpi-val { color: var(--cyan); }
+.kpi.c-yellow .kpi-val { color: var(--yellow); }
+.kpi.c-blue   .kpi-val { color: var(--blue); }
+.kpi.c-indigo .kpi-val { color: var(--indigo); }
+
+.kpi-label { font-size: 10px; font-weight: 600; text-transform:uppercase; letter-spacing:.1em; color:var(--txt3); font-family:var(--mono); }
+.kpi-sub   { font-size: 11px; color: var(--txt3); margin-top: 4px; }
+
+/* ══════════════════════════════════════════════════
+   PANELS
+══════════════════════════════════════════════════ */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 24px;
+  opacity:0;
+  transform: translateY(16px);
+  animation: riseIn .5s cubic-bezier(.22,.68,0,1.2) forwards;
+}
+.panel:nth-child(1){animation-delay:.18s}
+.panel:nth-child(2){animation-delay:.22s}
+.panel:nth-child(3){animation-delay:.26s}
+.panel:nth-child(4){animation-delay:.30s}
+.panel:nth-child(5){animation-delay:.34s}
+.panel:nth-child(6){animation-delay:.38s}
+
+.panel-head {
+  display:flex; align-items:center; gap:10px;
+  margin-bottom: 20px;
+}
+.panel-dot {
+  width:4px; height:18px;
+  border-radius:4px;
+  background: linear-gradient(to bottom, var(--indigo), var(--blue));
+  flex-shrink:0;
+}
+.panel-title {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing:.1em;
+  color: var(--txt2);
+}
+.panel-badge {
+  margin-left:auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius:99px;
+  background: var(--surface3);
+  color: var(--txt3);
+  border: 1px solid var(--border);
+}
+
+/* ══════════════════════════════════════════════════
+   GRID LAYOUTS
+══════════════════════════════════════════════════ */
+.grid-2 {
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.grid-3 {
+  display:grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.span-full { grid-column: 1/-1; }
+.mb { margin-bottom:16px; }
+
+@media(max-width:1000px){ .grid-2,.grid-3 { grid-template-columns:1fr; } }
+
+/* ══════════════════════════════════════════════════
+   VEHICLE BARS  (matches notebook class_counts)
+══════════════════════════════════════════════════ */
+.vbar-wrap { display:flex; flex-direction:column; gap:12px; }
+.vbar-row  { display:flex; align-items:center; gap:12px; }
+.vbar-cls  {
+  font-family:var(--mono); font-size:11px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.06em;
+  width:88px; flex-shrink:0; color:var(--txt2);
+}
+.vbar-track {
+  flex:1; height:32px;
+  background:var(--surface2);
+  border-radius:8px;
+  overflow:hidden;
+  border: 1px solid var(--border);
+}
+.vbar-fill {
+  height:100%;
+  border-radius:7px;
+  display:flex; align-items:center; padding-left:10px;
+  font-family:var(--mono); font-size:11px; font-weight:700;
+  color:#fff;
+  transition: width 1.1s cubic-bezier(.22,.68,0,1.2);
+  width: 0 !important; /* starts at 0 for animation */
+}
+.vbar-cnt {
+  font-family:var(--mono); font-size:13px; font-weight:700;
+  width:32px; text-align:right; flex-shrink:0;
+}
+
+/* ══════════════════════════════════════════════════
+   SPEED ZONE CARDS  (matches notebook get_speed_color logic)
+  BLUE   = 0–10 km/h
+  GREEN  = 11 – 75% of class limit
+  YELLOW = 75% – 100% of class limit
+  RED    = above class limit  (violation)
+══════════════════════════════════════════════════ */
+.zone-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.zone-card {
+  border-radius:14px;
+  padding:14px 16px;
+  border:1px solid transparent;
+  position:relative; overflow:hidden;
+}
+.zone-card::before {
+  content:'';
+  position:absolute; top:-10px; right:-10px;
+  width:60px; height:60px; border-radius:50%;
+  opacity:.1;
+  background: currentColor;
+}
+.zone-card.zblue   { background:var(--blue-dim);   border-color:rgba(79,179,255,.2);  color:var(--blue); }
+.zone-card.zgreen  { background:var(--green-dim);  border-color:rgba(52,217,130,.2);  color:var(--green); }
+.zone-card.zyellow { background:var(--yellow-dim); border-color:rgba(255,200,67,.2);  color:var(--yellow); }
+.zone-card.zred    { background:var(--red-dim);    border-color:rgba(255,77,106,.2);  color:var(--red); }
+
+.zone-swatch {
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--mono); font-size:10px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase;
+  margin-bottom:6px;
+}
+.zone-swatch::before {
+  content:'';
+  width:10px; height:10px; border-radius:3px;
+  background: currentColor;
+  flex-shrink:0;
+}
+.zone-range {
+  font-family:var(--mono); font-size:17px; font-weight:700;
+  line-height:1.1; margin-bottom:4px;
+}
+.zone-desc { font-size:11px; color:var(--txt3); }
+
+/* ══════════════════════════════════════════════════
+   SPEED LIMITS TABLE  (matches SPEED_LIMITS dict)
+══════════════════════════════════════════════════ */
+.limits-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.limit-card {
+  background: var(--surface2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:14px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.limit-cls  { font-size:13px; font-weight:600; text-transform:capitalize; }
+.limit-unit { font-size:10px; color:var(--txt3); margin-top:2px; font-family:var(--mono); }
+.limit-num  {
+  font-family:var(--mono); font-size:22px; font-weight:700;
+  color:var(--indigo);
+}
+
+/* ══════════════════════════════════════════════════
+   VIOLATIONS TABLE  (matches violations list schema)
+  fields: frame, track_id, class, speed_kmh, limit_kmh
+══════════════════════════════════════════════════ */
+.vtable-wrap { overflow-x:auto; border-radius:12px; }
+table.vt {
+  width:100%; border-collapse:collapse;
+}
+table.vt thead th {
+  font-family:var(--mono); font-size:9px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.12em;
+  color:var(--txt3);
+  padding:10px 14px;
+  border-bottom:1px solid var(--border);
+  text-align:left;
+  white-space:nowrap;
+}
+table.vt tbody td {
+  padding:11px 14px;
+  border-bottom:1px solid var(--border);
+  font-size:13px;
+  vertical-align:middle;
+}
+table.vt tbody tr:last-child td { border-bottom:none; }
+table.vt tbody tr { transition:background .15s; }
+table.vt tbody tr:hover { background:rgba(255,255,255,.025); }
+
+.pill {
+  display:inline-flex; align-items:center;
+  padding:3px 11px; border-radius:99px;
+  font-family:var(--mono); font-size:11px; font-weight:700;
+  letter-spacing:.04em; white-space:nowrap;
+}
+.pill-car   { background:rgba(79,179,255,.15);   color:var(--blue); }
+.pill-moto  { background:rgba(255,200,67,.15);   color:var(--yellow); }
+.pill-bus   { background:rgba(52,217,130,.15);   color:var(--green); }
+.pill-truck { background:rgba(255,77,106,.15);   color:var(--red); }
+.pill-def   { background:var(--indigo-dim);      color:var(--indigo); }
+.pill-over  {
+  background:rgba(255,77,106,.18);
+  color:var(--red);
+  border:1px solid rgba(255,77,106,.3);
+}
+
+.spd-pill {
+  display:inline-flex; align-items:center; gap:6px;
+  font-family:var(--mono); font-size:13px; font-weight:700;
+  color:var(--red);
+}
+.spd-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:var(--red);
+  box-shadow:0 0 6px var(--red);
+  flex-shrink:0;
+}
+.mono { font-family:var(--mono); }
+.dim  { color:var(--txt3); }
+
+/* ══════════════════════════════════════════════════
+   CHART WRAPPERS
+══════════════════════════════════════════════════ */
+.ch { position:relative; width:100%; }
+.ch-220 { height:220px; }
+.ch-260 { height:260px; }
+.ch-300 { height:300px; }
+
+/* ══════════════════════════════════════════════════
+   EMPTY STATE
+══════════════════════════════════════════════════ */
+.empty {
+  text-align:center; padding:40px 20px;
+  color:var(--txt3); font-size:13px;
+  font-family:var(--mono);
+}
+.empty-ico { font-size:32px; margin-bottom:12px; }
+
+/* ══════════════════════════════════════════════════
+   SPEED HISTOGRAM BARS (per-class breakdown)
+══════════════════════════════════════════════════ */
+.stat-row {
+  display:flex; align-items:center; gap:12px;
+  padding:10px 0;
+  border-bottom:1px solid var(--border);
+}
+.stat-row:last-child { border-bottom:none; }
+.stat-lbl { font-family:var(--mono); font-size:11px; color:var(--txt2); width:80px; flex-shrink:0; }
+.stat-bar { flex:1; height:10px; background:var(--surface2); border-radius:5px; overflow:hidden; }
+.stat-fill { height:100%; border-radius:5px; transition:width 1s ease; }
+.stat-val  { font-family:var(--mono); font-size:12px; font-weight:700; width:70px; text-align:right; flex-shrink:0; }
+
+/* ══════════════════════════════════════════════════
+   FOOTER
+══════════════════════════════════════════════════ */
+.footer {
+  margin-top:48px; padding-top:24px;
+  border-top:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  flex-wrap:wrap; gap:12px;
+}
+.footer-l { font-family:var(--mono); font-size:11px; color:var(--txt3); }
+.footer-r { font-family:var(--mono); font-size:11px; color:var(--txt3); }
+
+
+  .kpi.c-orange::before { background:var(--orange); }
+  .kpi.c-orange::after  { background:var(--orange); }
+  .kpi.c-orange .kpi-val { color: var(--orange); }
+
+  /* ══ NAV BAR ══ */
+  .nav-bar {
+    position: relative; z-index: 10;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 24px; gap: 0;
+  }
+  .nav-logo {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 0; margin-right: 32px; flex-shrink: 0;
+  }
+  .nav-logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--indigo), var(--cyan));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+  }
+  .nav-logo-text { font-size: 15px; font-weight: 700; letter-spacing: -.3px; color: var(--txt); }
+  .nav-tabs { display: flex; gap: 0; }
+  .nav-tab {
+    padding: 16px 22px; font-size: 13px; font-weight: 500; color: var(--txt3);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s; white-space: nowrap;
+    user-select: none; display: flex; align-items: center; gap: 7px;
+  }
+  .nav-tab:hover { color: var(--txt); }
+  .nav-tab.active { color: var(--txt); border-bottom-color: var(--indigo); }
+  .nav-badge {
+    background: var(--red-dim); color: var(--red);
+    font-size: 10px; font-weight: 700;
+    padding: 1px 6px; border-radius: 10px; font-family: var(--mono);
+  }
+
+  /* ── Page switching ── */
+  .page-wrap { display: none; }
+  .page-wrap.active { display: block; }
+
+  /* ══ CHALLAN PAGE STYLES ══ */
+  .challan-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px;
+  }
+  .challan-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+    animation: riseIn .4s ease both; transition: border-color .2s;
+  }
+  .challan-card:hover { border-color: var(--border2); }
+  .challan-card-header {
+    padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .challan-card-header.slab1 { background: rgba(255,200,67,.07); }
+  .challan-card-header.slab2 { background: rgba(255,140,66,.07); }
+  .challan-card-header.slab3 { background: rgba(255,77,106,.09); }
+  .challan-id { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--txt2); }
+  .challan-fine { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+  .challan-fine.slab1 { color: var(--yellow); }
+  .challan-fine.slab2 { color: var(--orange); }
+  .challan-fine.slab3 { color: var(--red); }
+  .challan-body { padding: 14px 16px; }
+  .challan-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 12px; }
+  .challan-row:last-child { margin-bottom: 0; }
+  .challan-key { color: var(--txt3); }
+  .challan-val { font-family: var(--mono); font-weight: 600; }
+  .challan-footer {
+    padding: 10px 16px; background: rgba(0,0,0,.2);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .challan-surcharge { font-size: 11px; color: var(--txt3); }
+  .challan-surcharge span { color: var(--indigo); font-family: var(--mono); }
+
+  .slab-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+  .slab-card { border-radius: 12px; padding: 16px; border: 1px solid transparent; text-align: center; }
+  .slab-card.s1 { background: var(--yellow-dim);  border-color: rgba(255,200,67,.2); }
+  .slab-card.s2 { background: rgba(255,140,66,.1); border-color: rgba(255,140,66,.2); }
+  .slab-card.s3 { background: var(--red-dim);     border-color: rgba(255,77,106,.2); }
+  .slab-over { font-size: 11px; color: var(--txt3); font-family: var(--mono); margin-bottom: 6px; }
+  .slab-fine { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+  .slab-card.s1 .slab-fine { color: var(--yellow); }
+  .slab-card.s2 .slab-fine { color: var(--orange); }
+  .slab-card.s3 .slab-fine { color: var(--red); }
+  .slab-count { font-size: 12px; color: var(--txt3); margin-top: 4px; }
+
+  .rev-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .rev-label { font-family: var(--mono); font-size: 12px; width: 100px; color: var(--txt2); flex-shrink: 0; text-transform: capitalize; }
+  .rev-bg    { flex: 1; height: 26px; background: var(--bg); border-radius: 6px; overflow: hidden; }
+  .rev-fill  { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px;
+               font-size: 11px; font-weight: 600; font-family: var(--mono); color: #fff;
+               transition: width 1s ease; min-width: 20px; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px;
+           font-size: 11px; font-weight: 600; font-family: var(--mono); letter-spacing: .04em; }
+  .badge-car   { background: var(--blue-dim);          color: var(--blue); }
+  .badge-moto  { background: var(--yellow-dim);        color: var(--yellow); }
+  .badge-bus   { background: var(--green-dim);         color: var(--green); }
+  .badge-truck { background: var(--red-dim);           color: var(--red); }
+  .badge-viol  { background: rgba(255,77,106,.2);      color: var(--red); border: 1px solid rgba(255,77,106,.3); }
+  .badge-slab1 { background: var(--yellow-dim);        color: var(--yellow); }
+  .badge-slab2 { background: rgba(255,140,66,.15);     color: var(--orange); }
+  .badge-slab3 { background: var(--red-dim);           color: var(--red); border:1px solid rgba(255,77,106,.3); }
+  .badge-heavy { background: var(--indigo-dim);        color: var(--indigo); }
+
+  .logo-box.logo-challan { background: linear-gradient(135deg, #b45309, var(--yellow)) !important; }
+  .road-tag.challan-badge {
+    background: var(--yellow-dim); border-color: rgba(255,200,67,.3); color: var(--yellow);
+  }
+  .panel-dot.gold { background: linear-gradient(to bottom, var(--yellow), var(--orange)); }
+  .ch-260x { height: 260px; }
+
+</style>
+</head>
+<body>
+<!-- ══ NAV BAR ══ -->
+<div class="nav-bar">
+  <div class="nav-logo">
+    <div class="nav-logo-icon">🚦</div>
+    <div class="nav-logo-text">TrafficBrain AI</div>
+  </div>
+  <div class="nav-tabs">
+    <div class="nav-tab active" id="tab-dashboard" onclick="switchPage('dashboard')">
+      <span>📊</span> Dashboard
+    </div>
+    <div class="nav-tab" id="tab-challan" onclick="switchPage('challan')">
+      <span>📋</span> Challan / Fines
+      <span class="nav-badge" id="navBadgeCount">0</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE 1 — DASHBOARD ══ -->
+<div class="page-wrap active" id="page-dashboard">
+<div class="page">
+
+<!-- ══ HEADER ══ -->
+<header class="header">
+  <div class="header-brand">
+    <div class="logo-box">🚦</div>
+    <div>
+      <div class="brand-name">TrafficBrain AI</div>
+      <div class="brand-sub">smart_traffic_analysis &nbsp;·&nbsp; City Road &nbsp;·&nbsp; YOLO11l + ByteTrack</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="road-tag" id="roadTag">City Road</div>
+    <div class="live-dot" id="generatedAt">results ready</div>
+  </div>
+</header>
+
+<!-- ══ DEMO BANNER ══ -->
+<div class="demo-banner" id="demoBanner">
+  Demo data shown — run Cell 13 in your notebook first, then refresh this page.
+</div>
+
+<!-- ══ KPI STRIP ══ -->
+<div class="kpi-strip">
+  <div class="kpi c-green">
+    <div class="kpi-icon">🚗</div>
+    <div class="kpi-val" id="kpiTotal">—</div>
+    <div class="kpi-label">Total Vehicles</div>
+    <div class="kpi-sub">crossed red line</div>
+  </div>
+  <div class="kpi c-red">
+    <div class="kpi-icon">⚠️</div>
+    <div class="kpi-val" id="kpiViols">—</div>
+    <div class="kpi-label">Violations</div>
+    <div class="kpi-sub">speed limit breached</div>
+  </div>
+  <div class="kpi c-indigo">
+    <div class="kpi-icon">📊</div>
+    <div class="kpi-val" id="kpiRate">—</div>
+    <div class="kpi-label">Violation Rate</div>
+    <div class="kpi-sub">% of all vehicles</div>
+  </div>
+  <div class="kpi c-cyan">
+    <div class="kpi-icon">〰️</div>
+    <div class="kpi-val" id="kpiMean">—</div>
+    <div class="kpi-label">Mean Speed</div>
+    <div class="kpi-sub">km/h average</div>
+  </div>
+  <div class="kpi c-yellow">
+    <div class="kpi-icon">⬛</div>
+    <div class="kpi-val" id="kpiMedian">—</div>
+    <div class="kpi-label">Median Speed</div>
+    <div class="kpi-sub">km/h median</div>
+  </div>
+  <div class="kpi c-red">
+    <div class="kpi-icon">🔴</div>
+    <div class="kpi-val" id="kpiMax">—</div>
+    <div class="kpi-label">Max Speed</div>
+    <div class="kpi-sub">km/h peak recorded</div>
+  </div>
+</div>
+
+<!-- ══ ROW 1: vehicle counts + doughnut ══ -->
+<div class="grid-2 mb">
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-dot"></div>
+      <div class="panel-title">Vehicle type breakdown</div>
+      <div class="panel-badge" id="totalBadge">0 total</div>
+    </div>
+    <div class="vbar-wrap" id="vbarContainer">
+      <div class="empty"><div class="empty-ico">🚗</div>No vehicle data</div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-dot"></div>
+      <div class="panel-title">Distribution by type</div>
+    </div>
+    <div class="ch ch-260"><canvas id="doughnutChart"></canvas></div>
+  </div>
+</div>
+
+<!-- ══ ROW 2: speed zones + speed limits ══ -->
+<div class="grid-2 mb">
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-dot"></div>
+      <div class="panel-title">Speed zone colour rules</div>
+    </div>
+    <div class="zone-grid">
+      <div class="zone-card zblue">
+        <div class="zone-swatch">Blue</div>
+        <div class="zone-range">0 – 10 km/h</div>
+        <div class="zone-desc">Very slow / stopped</div>
+      </div>
+      <div class="zone-card zgreen">
+        <div class="zone-swatch">Green</div>
+        <div class="zone-range" id="zoneGreen">11 – 75% limit</div>
+        <div class="zone-desc">Safe speed</div>
+      </div>
+      <div class="zone-card zyellow">
+        <div class="zone-swatch">Yellow</div>
+        <div class="zone-range" id="zoneYellow">75% – limit</div>
+        <div class="zone-desc">Approaching limit · Caution</div>
+      </div>
+      <div class="zone-card zred">
+        <div class="zone-swatch">Red</div>
+        <div class="zone-range">Above limit</div>
+        <div class="zone-desc">Violation + SPEEDING overlay</div>
+      </div>
+    </div>
+
+    <!-- per-class zone breakdown -->
+    <div style="margin-top:18px;">
+      <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--txt3);margin-bottom:10px;">Per-class thresholds</div>
+      <div id="classZoneTable"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-dot"></div>
+      <div class="panel-title">Speed limits by vehicle class</div>
+    </div>
+    <div class="limits-grid" id="limitsGrid">
+      <div class="empty">No limit data</div>
+    </div>
+
+    <!-- speed stats mini bars -->
+    <div style="margin-top:20px; border-top:1px solid var(--border); padding-top:18px;">
+      <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--txt3);margin-bottom:12px;">Speed statistics</div>
+      <div id="statsRows"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ROW 3: speed bar chart (full width) ══ -->
+<div class="panel mb">
+  <div class="panel-head">
+    <div class="panel-dot"></div>
+    <div class="panel-title">Speed statistics vs limits</div>
+  </div>
+  <div class="ch ch-220"><canvas id="speedBarChart"></canvas></div>
+</div>
+
+<!-- ══ ROW 4: violations table (full width) ══ -->
+<div class="panel mb">
+  <div class="panel-head">
+    <div class="panel-dot"></div>
+    <div class="panel-title">Speed violations log</div>
+    <div class="panel-badge" id="violBadge">0 violations</div>
+  </div>
+  <div class="vtable-wrap" id="violContainer">
+    <div class="empty"><div class="empty-ico">✅</div>No violations recorded</div>
+  </div>
+</div>
+
+<!-- ══ FOOTER ══ -->
+<div class="footer">
+  <div class="footer-l">TrafficBrain AI · YOLO11l · ByteTrack · City Road</div>
+  <div class="footer-r" id="footerTs">generated: —</div>
+</div>
+
+</div><!-- /page -->
+
+
+</div><!-- /page-wrap dashboard -->
+
+<!-- ══ PAGE 2 — CHALLAN / FINES ══ -->
+<div class="page-wrap" id="page-challan">
+<div class="page">
+
+  <header class="header">
+    <div class="header-brand">
+      <div class="logo-box logo-challan">📋</div>
+      <div>
+        <div class="brand-name">Challan Report</div>
+        <div class="brand-sub">speed violation fines &nbsp;·&nbsp; TrafficBrain AI</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="road-tag challan-badge" id="challBadge">City Road</div>
+    </div>
+  </header>
+
+  <div class="kpi-strip">
+    <div class="kpi c-yellow">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-val" id="ckpiTotal">—</div>
+      <div class="kpi-label">Total Fines</div>
+      <div class="kpi-sub">Indian Rupees</div>
+    </div>
+    <div class="kpi c-red">
+      <div class="kpi-icon">📋</div>
+      <div class="kpi-val" id="ckpiCount">—</div>
+      <div class="kpi-label">Challans Issued</div>
+      <div class="kpi-sub">vehicles fined</div>
+    </div>
+    <div class="kpi c-orange">
+      <div class="kpi-icon">📊</div>
+      <div class="kpi-val" id="ckpiAvg">—</div>
+      <div class="kpi-label">Avg Fine</div>
+      <div class="kpi-sub">Rs. per violation</div>
+    </div>
+    <div class="kpi c-red">
+      <div class="kpi-icon">🔴</div>
+      <div class="kpi-val" id="ckpiMax">—</div>
+      <div class="kpi-label">Highest Fine</div>
+      <div class="kpi-sub">Rs. single challan</div>
+    </div>
+    <div class="kpi c-yellow">
+      <div class="kpi-icon">🚌</div>
+      <div class="kpi-val" id="ckpiSurcharge">—</div>
+      <div class="kpi-label">Heavy Surcharge</div>
+      <div class="kpi-sub">Rs. (bus + truck)</div>
+    </div>
+    <div class="kpi c-indigo">
+      <div class="kpi-icon">🔁</div>
+      <div class="kpi-val" id="ckpiRepeat">—</div>
+      <div class="kpi-label">Repeat Offenders</div>
+      <div class="kpi-sub">fined 2+ times</div>
+    </div>
+  </div>
+
+  <div class="grid-2 mb">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-dot gold"></div>
+        <div class="panel-title">Fine slab breakdown</div>
+      </div>
+      <div class="slab-grid" id="slabGrid"></div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+        <div style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--txt3);margin-bottom:8px">SURCHARGE RULE</div>
+        <div style="font-size:13px;color:var(--txt2)">Bus &amp; truck pay <span style="color:var(--indigo);font-weight:600">+25%</span> on top of base fine due to higher road impact.</div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-dot gold"></div>
+        <div class="panel-title">Revenue by vehicle class</div>
+      </div>
+      <div id="revByClass"></div>
+    </div>
+  </div>
+
+  <div class="grid-2 mb">
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-dot gold"></div>
+        <div class="panel-title">Fine amount distribution</div>
+      </div>
+      <div class="ch ch-260x"><canvas id="challPieChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-dot gold"></div>
+        <div class="panel-title">Fines by vehicle class</div>
+      </div>
+      <div class="ch ch-260x"><canvas id="challBarChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel mb">
+    <div class="panel-head">
+      <div class="panel-dot gold"></div>
+      <div class="panel-title">Individual challans</div>
+      <div class="panel-badge" id="challanCountBadge">0 challans</div>
+    </div>
+    <div class="challan-grid" id="challanCards"></div>
+  </div>
+
+  <div class="panel mb">
+    <div class="panel-head">
+      <div class="panel-dot gold"></div>
+      <div class="panel-title">Challan register — full log</div>
+    </div>
+    <div class="vtable-wrap" id="challanTable"></div>
+  </div>
+
+  <div class="footer">
+    <div class="footer-l">TrafficBrain AI · Challan System</div>
+    <div class="footer-r" id="challGeneratedAt">generated: —</div>
+  </div>
+
+</div>
+</div><!-- /page-wrap challan -->
+
+<script>
+
+/* ══════════════════════════════════════════════════════════════════
+   DATA INJECTION ZONE
+   Cell 13 in your notebook replaces everything between these markers.
+══════════════════════════════════════════════════════════════════ */
+// %%DATA_START%%
+const INJECTED_DATA = {
+  "road_type": "Highway (State)",
+  "speed_limits": {
+    "car": 100,
+    "motorcycle": 80,
+    "bus": 90,
+    "truck": 80
+  },
+  "vehicle_counts": {
+    "car": 135,
+    "truck": 11,
+    "bus": 3
+  },
+  "total_vehicles": 149,
+  "violations": [
+    {
+      "frame": 531,
+      "track_id": 351,
+      "class": "car",
+      "speed_kmh": 108.8,
+      "limit_kmh": 100,
+      "over_by": 8.8,
+      "fine": 500,
+      "base_fine": 500,
+      "surcharge": 0,
+      "slab": "1\u201315 km/h over"
+    },
+    {
+      "frame": 539,
+      "track_id": 353,
+      "class": "car",
+      "speed_kmh": 120.3,
+      "limit_kmh": 100,
+      "over_by": 20.3,
+      "fine": 1000,
+      "base_fine": 1000,
+      "surcharge": 0,
+      "slab": "16\u201330 km/h over"
+    }
+  ],
+  "total_fines_inr": 1500,
+  "speed_stats": {
+    "mean": 82.1,
+    "median": 38.2,
+    "max": 648.3
+  }
+};
+// %%DATA_END%%
+/* ══════════════════════════════════════════════════════════════════ */
+
+/* ── Demo data (mirrors notebook DEMO schema exactly) ── */
+const DEMO = {
+  road_type: "City Road",
+  speed_limits: { car: 50, motorcycle: 50, bus: 40, truck: 40 },
+  vehicle_counts: { car: 42, motorcycle: 8, bus: 5, truck: 3 },
+  total_vehicles: 58,
+  violations: [
+    { frame: 120,  track_id: 3,  class: "car",        speed_kmh: 61.2, limit_kmh: 50 },
+    { frame: 310,  track_id: 11, class: "motorcycle",  speed_kmh: 58.7, limit_kmh: 50 },
+    { frame: 540,  track_id: 19, class: "truck",       speed_kmh: 47.3, limit_kmh: 40 },
+    { frame: 780,  track_id: 27, class: "car",         speed_kmh: 72.1, limit_kmh: 50 },
+    { frame: 990,  track_id: 34, class: "bus",         speed_kmh: 44.8, limit_kmh: 40 },
+  ],
+  speed_stats: { mean: 38.4, median: 35.1, max: 72.1 }
+};
+
+const D      = (INJECTED_DATA && INJECTED_DATA !== null) ? INJECTED_DATA : DEMO;
+const IS_DEMO = !INJECTED_DATA;
+
+/* ── Colour palette – matches notebook get_speed_color / class colours ── */
+const CLS_PALETTE = {
+  car:        { bg:'rgba(79,179,255,.75)',  border:'#4fb3ff' },
+  motorcycle: { bg:'rgba(255,200,67,.75)', border:'#ffc843' },
+  bus:        { bg:'rgba(52,217,130,.75)', border:'#34d982' },
+  truck:      { bg:'rgba(255,77,106,.75)', border:'#ff4d6a' },
+  _default:   { bg:'rgba(129,140,248,.75)',border:'#818cf8' },
+};
+const PILL_CLASS = {
+  car:'pill-car', motorcycle:'pill-moto', bus:'pill-bus', truck:'pill-truck'
+};
+function cls(name){ return CLS_PALETTE[name] || CLS_PALETTE._default; }
+function pillCls(name){ return PILL_CLASS[name] || 'pill-def'; }
+
+/* ════════════════════════════════════════════
+   KPIs
+════════════════════════════════════════════ */
+function fillKPIs(){
+  const total = D.total_vehicles || 0;
+  const viols = (D.violations||[]).length;
+  const ss    = D.speed_stats || {};
+  document.getElementById('kpiTotal').textContent  = total;
+  document.getElementById('kpiViols').textContent  = viols;
+  document.getElementById('kpiRate').textContent   = total ? (viols/total*100).toFixed(1)+'%' : '—';
+  document.getElementById('kpiMean').textContent   = ss.mean   ?? '—';
+  document.getElementById('kpiMedian').textContent = ss.median ?? '—';
+  document.getElementById('kpiMax').textContent    = ss.max    ?? '—';
+  document.getElementById('roadTag').textContent   = D.road_type || 'City Road';
+  document.getElementById('violBadge').textContent = `${viols} violation${viols!==1?'s':''}`;
+}
+
+/* ════════════════════════════════════════════
+   VEHICLE BARS
+════════════════════════════════════════════ */
+function fillVehicleBars(){
+  const counts  = D.vehicle_counts || {};
+  const total   = Object.values(counts).reduce((a,b)=>a+b,0)||1;
+  const sorted  = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const el      = document.getElementById('vbarContainer');
+  document.getElementById('totalBadge').textContent = `${total} total`;
+  if(!sorted.length){ el.innerHTML='<div class="empty"><div class="empty-ico">🚗</div>No vehicle data</div>'; return; }
+
+  el.innerHTML = sorted.map(([name,cnt])=>{
+    const pct = Math.round(cnt/total*100);
+    const c   = cls(name);
+    return `
+    <div class="vbar-row">
+      <div class="vbar-cls">${name}</div>
+      <div class="vbar-track">
+        <div class="vbar-fill" data-w="${pct}" style="background:${c.bg}">${pct}%</div>
+      </div>
+      <div class="vbar-cnt" style="color:${c.border}">${cnt}</div>
+    </div>`;
+  }).join('');
+
+  // animate widths after paint
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    document.querySelectorAll('.vbar-fill').forEach(el=>{
+      el.style.width = el.dataset.w + '%';
+    });
+  }));
+}
+
+/* ════════════════════════════════════════════
+   DOUGHNUT
+════════════════════════════════════════════ */
+function buildDoughnut(){
+  const counts  = D.vehicle_counts||{};
+  const labels  = Object.keys(counts);
+  const values  = Object.values(counts);
+  const bgs     = labels.map(l=>cls(l).bg);
+  const borders = labels.map(l=>cls(l).border);
+  new Chart(document.getElementById('doughnutChart'),{
+    type:'doughnut',
+    data:{ labels, datasets:[{ data:values, backgroundColor:bgs, borderColor:borders, borderWidth:2, hoverOffset:8 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      cutout:'65%',
+      plugins:{
+        legend:{
+          position:'bottom',
+          labels:{ color:'#8896b0', font:{ family:'Space Mono', size:10 }, padding:18, boxWidth:11, boxHeight:11 }
+        },
+        tooltip:{
+          callbacks:{
+            label: ctx=>{
+              const t = values.reduce((a,b)=>a+b,0)||1;
+              return ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed/t*100)}%)`;
+            }
+          }
+        }
+      },
+      animation:{ animateRotate:true, duration:900 }
+    }
+  });
+}
+
+/* ════════════════════════════════════════════
+   SPEED ZONES  (mirrors get_speed_color logic)
+  GREEN  = 11 – floor(limit × 0.75)
+  YELLOW = floor(limit × 0.75)+1 – limit
+════════════════════════════════════════════ */
+function fillZones(){
+  const limits = D.speed_limits||{};
+  const carLim = limits.car || 50;
+  document.getElementById('zoneGreen').textContent  = `11 – ${Math.floor(carLim*.75)} km/h`;
+  document.getElementById('zoneYellow').textContent = `${Math.floor(carLim*.75)+1} – ${carLim} km/h`;
+
+  // per-class zone table
+  const el = document.getElementById('classZoneTable');
+  if(!Object.keys(limits).length){ el.innerHTML=''; return; }
+  el.innerHTML = Object.entries(limits).map(([name,lim])=>`
+    <div class="stat-row" style="padding:8px 0;">
+      <div class="stat-lbl">${name}</div>
+      <div style="flex:1;font-family:var(--mono);font-size:11px;color:var(--txt3);">
+        <span style="color:var(--blue)">0–10</span>
+        &nbsp;/&nbsp;
+        <span style="color:var(--green)">11–${Math.floor(lim*.75)}</span>
+        &nbsp;/&nbsp;
+        <span style="color:var(--yellow)">${Math.floor(lim*.75)+1}–${lim}</span>
+        &nbsp;/&nbsp;
+        <span style="color:var(--red)">&gt;${lim}</span>
+        &nbsp; km/h
+      </div>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════
+   SPEED LIMITS GRID
+════════════════════════════════════════════ */
+function fillLimits(){
+  const limits = D.speed_limits||{};
+  const el = document.getElementById('limitsGrid');
+  if(!Object.keys(limits).length){ el.innerHTML='<div class="empty">No limit data</div>'; return; }
+  el.innerHTML = Object.entries(limits).map(([name,lim])=>`
+    <div class="limit-card">
+      <div>
+        <div class="limit-cls">${name}</div>
+        <div class="limit-unit">km/h limit</div>
+      </div>
+      <div class="limit-num">${lim}</div>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════
+   SPEED STATS MINI BARS
+════════════════════════════════════════════ */
+function fillStatsRows(){
+  const ss  = D.speed_stats||{};
+  const lim = (D.speed_limits||{}).car || 50;
+  const max = Math.max(ss.mean||0, ss.median||0, ss.max||0, lim) * 1.2 || 100;
+  const rows = [
+    { label:'Mean',   val:ss.mean||0,   color:'var(--cyan)' },
+    { label:'Median', val:ss.median||0, color:'var(--indigo)' },
+    { label:'Max',    val:ss.max||0,    color:( (ss.max||0)>lim ? 'var(--red)' : 'var(--green)' ) },
+  ];
+  document.getElementById('statsRows').innerHTML = rows.map(r=>`
+    <div class="stat-row">
+      <div class="stat-lbl">${r.label}</div>
+      <div class="stat-bar">
+        <div class="stat-fill" style="width:${(r.val/max*100).toFixed(1)}%;background:${r.color}"></div>
+      </div>
+      <div class="stat-val" style="color:${r.color}">${r.val} km/h</div>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════════
+   SPEED BAR CHART
+  Shows mean/median/max vs limit reference line
+  Mirrors notebook speed_stats structure exactly
+════════════════════════════════════════════ */
+function buildSpeedBar(){
+  const ss   = D.speed_stats||{};
+  const lims = D.speed_limits||{};
+  const refLim = lims.car || 50;   // reference line for general limit
+
+  const labels = ['Mean Speed','Median Speed','Max Speed'];
+  const values = [ss.mean||0, ss.median||0, ss.max||0];
+  const bgs    = [
+    'rgba(34,211,238,.75)',
+    'rgba(129,140,248,.75)',
+    (ss.max||0) > refLim ? 'rgba(255,77,106,.85)' : 'rgba(52,217,130,.75)'
+  ];
+
+  new Chart(document.getElementById('speedBarChart'),{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:'Speed (km/h)',
+        data:values,
+        backgroundColor:bgs,
+        borderRadius:8,
+        borderSkipped:false,
+        maxBarThickness: 72,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{ label: ctx=>` ${ctx.parsed.y} km/h` } }
+      },
+      scales:{
+        x:{ ticks:{ color:'#8896b0', font:{ family:'Space Mono', size:11 } },
+            grid:{ color:'rgba(255,255,255,.04)' } },
+        y:{ min:0,
+            max: Math.max(...values, refLim)*1.28,
+            ticks:{ color:'#8896b0', font:{ family:'Space Mono', size:10 }, callback:v=>v+' km/h' },
+            grid:{ color:'rgba(255,255,255,.04)' } }
+      },
+      animation:{ duration:900, easing:'easeOutQuart' }
+    },
+    plugins:[{
+      id:'limitLines',
+      afterDraw(chart){
+        const { ctx, chartArea:{ left, right }, scales:{ y } } = chart;
+        // draw one line per unique speed limit
+        const uniqueLims = [...new Set(Object.values(lims))].sort((a,b)=>a-b);
+        const lineColors = ['rgba(255,200,67,.6)','rgba(255,77,106,.5)','rgba(255,140,66,.5)'];
+        uniqueLims.forEach((lim, i)=>{
+          const ly = y.getPixelForValue(lim);
+          ctx.save();
+          ctx.strokeStyle = lineColors[i] || 'rgba(255,200,67,.5)';
+          ctx.lineWidth   = 1.5;
+          ctx.setLineDash([6,4]);
+          ctx.beginPath();
+          ctx.moveTo(left, ly);
+          ctx.lineTo(right, ly);
+          ctx.stroke();
+          ctx.fillStyle  = lineColors[i] || 'rgba(255,200,67,.7)';
+          ctx.font       = '10px Space Mono, monospace';
+          ctx.fillText(`limit ${lim} km/h`, right-90, ly-5);
+          ctx.restore();
+        });
+      }
+    }]
+  });
+}
+
+/* ════════════════════════════════════════════
+   VIOLATIONS TABLE
+  Renders violations[] exactly as notebook logs them:
+  { frame, track_id, class, speed_kmh, limit_kmh }
+════════════════════════════════════════════ */
+function fillViolations(){
+  const viols = D.violations||[];
+  const el    = document.getElementById('violContainer');
+  if(!viols.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">✅</div>No violations recorded</div>';
+    return;
+  }
+  const rows = viols.map((v,i)=>{
+    const overBy = (v.speed_kmh - v.limit_kmh).toFixed(1);
+    return `
+    <tr style="opacity:0;animation:riseIn .4s ease ${i*.05}s forwards">
+      <td class="mono dim" style="font-size:12px">#${String(v.frame).padStart(5,'0')}</td>
+      <td class="mono" style="font-weight:700">#${v.track_id}</td>
+      <td><span class="pill ${pillCls(v.class)}">${v.class}</span></td>
+      <td>
+        <div class="spd-pill">
+          <span class="spd-dot"></span>
+          ${v.speed_kmh} km/h
+        </div>
+      </td>
+      <td class="mono dim">${v.limit_kmh} km/h</td>
+      <td><span class="pill pill-over">+${overBy} km/h over</span></td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML=`
+    <table class="vt">
+      <thead>
+        <tr>
+          <th>Frame</th><th>Track ID</th><th>Class</th>
+          <th>Speed</th><th>Limit</th><th>Over by</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+/* ════════════════════════════════════════════
+   META / FOOTER
+════════════════════════════════════════════ */
+function fillMeta(){
+  const ts = new Date().toLocaleString();
+  document.getElementById('generatedAt').textContent = `results ready · ${ts}`;
+  document.getElementById('footerTs').textContent    = `generated: ${ts}`;
+  if(IS_DEMO) document.getElementById('demoBanner').classList.add('show');
+}
+
+/* ════════════════════════════════════════════
+   BOOT
+════════════════════════════════════════════ */
+fillKPIs();
+fillVehicleBars();
+buildDoughnut();
+fillZones();
+fillLimits();
+fillStatsRows();
+buildSpeedBar();
+fillViolations();
+fillMeta();
+
+/* ════════════════════════════════════════════════════════════
+   PAGE SWITCHING
+════════════════════════════════════════════════════════════ */
+function switchPage(name) {
+  document.querySelectorAll('.page-wrap').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+/* ════════════════════════════════════════════════════════════
+   CHALLAN PAGE  (integrated from friend's dashboard)
+════════════════════════════════════════════════════════════ */
+
+const CHALL_COLORS = {
+  car:        { bg:'rgba(79,179,255,.75)',  border:'#4fb3ff' },
+  motorcycle: { bg:'rgba(255,200,67,.75)', border:'#ffc843' },
+  bus:        { bg:'rgba(52,217,130,.75)', border:'#34d982' },
+  truck:      { bg:'rgba(255,77,106,.75)', border:'#ff4d6a' },
+  _default:   { bg:'rgba(129,140,248,.75)', border:'#818cf8' },
+};
+const BADGE_MAP = { car:'badge-car', motorcycle:'badge-moto', bus:'badge-bus', truck:'badge-truck' };
+function getCColor(c) { return CHALL_COLORS[c] || CHALL_COLORS._default; }
+
+/* computeChallanData — works with both old violations (no fine field)
+   and new ones already containing fine/slab/over_by from the notebook */
+function computeChallanData() {
+  const viols = D.violations || [];
+  return viols.map(v => {
+    if (v.fine !== undefined) return v;
+    const over = parseFloat((v.speed_kmh - v.limit_kmh).toFixed(1));
+    let base = 0, slab = '';
+    if (over >= 1  && over <= 15) { base = 500;  slab = '1–15 km/h over'; }
+    if (over >= 16 && over <= 30) { base = 1000; slab = '16–30 km/h over'; }
+    if (over >  30)               { base = 2000; slab = '31+ km/h over'; }
+    const heavy     = ['bus','truck'].includes(v.class);
+    const surcharge = heavy ? Math.round(base * 0.25) : 0;
+    return { ...v, over_by: over, fine: base + surcharge, base_fine: base, surcharge, slab };
+  });
+}
+
+function fillChallanKPIs(challans) {
+  const total     = challans.reduce((a,c)=>a+c.fine, 0);
+  const count     = challans.length;
+  const avg       = count ? Math.round(total/count) : 0;
+  const maxFine   = count ? Math.max(...challans.map(c=>c.fine)) : 0;
+  const surcharge = challans.reduce((a,c)=>a+c.surcharge, 0);
+  const idCounts  = {};
+  challans.forEach(c => { idCounts[c.track_id] = (idCounts[c.track_id]||0)+1; });
+  const repeats   = Object.values(idCounts).filter(n=>n>1).length;
+
+  document.getElementById('ckpiTotal').textContent     = 'Rs.' + total.toLocaleString('en-IN');
+  document.getElementById('ckpiCount').textContent     = count;
+  document.getElementById('ckpiAvg').textContent       = avg.toLocaleString('en-IN');
+  document.getElementById('ckpiMax').textContent       = maxFine.toLocaleString('en-IN');
+  document.getElementById('ckpiSurcharge').textContent = surcharge.toLocaleString('en-IN');
+  document.getElementById('ckpiRepeat').textContent    = repeats;
+  document.getElementById('challBadge').textContent    = D.road_type || 'City Road';
+  document.getElementById('navBadgeCount').textContent = count;
+  document.getElementById('challanCountBadge').textContent = count + ' challan' + (count!==1?'s':'');
+}
+
+function fillSlabGrid(challans) {
+  const slabs = [
+    { key:'1–15 km/h over',  label:'1 – 15 km/h over',  fine:'Rs.500',   cls:'s1' },
+    { key:'16–30 km/h over', label:'16 – 30 km/h over', fine:'Rs.1,000', cls:'s2' },
+    { key:'31+ km/h over',   label:'31+ km/h over',     fine:'Rs.2,000', cls:'s3' },
+  ];
+  document.getElementById('slabGrid').innerHTML = slabs.map(s => {
+    const cnt = challans.filter(c=>c.slab===s.key).length;
+    return `<div class="slab-card ${s.cls}">
+      <div class="slab-over">${s.label}</div>
+      <div class="slab-fine">${s.fine}</div>
+      <div class="slab-count">${cnt} challan${cnt!==1?'s':''}</div>
+    </div>`;
+  }).join('');
+}
+
+function fillRevByClass(challans) {
+  const rev = {};
+  challans.forEach(c => { rev[c.class] = (rev[c.class]||0) + c.fine; });
+  const sorted = Object.entries(rev).sort((a,b)=>b[1]-a[1]);
+  const maxAmt = sorted[0]?.[1] || 1;
+  document.getElementById('revByClass').innerHTML = sorted.map(([cl,amt]) => {
+    const pct = Math.round(amt/maxAmt*100);
+    const col = getCColor(cl);
+    return `<div class="rev-row">
+      <div class="rev-label">${cl}</div>
+      <div class="rev-bg"><div class="rev-fill" style="width:${pct}%;background:${col.bg}">Rs.${amt.toLocaleString('en-IN')}</div></div>
+    </div>`;
+  }).join('') || '<div class="empty"><div class="empty-ico">📊</div>No data</div>';
+}
+
+function buildChallanCharts(challans) {
+  const slabLabels = ['1–15 over (Rs.500)', '16–30 over (Rs.1000)', '31+ over (Rs.2000)'];
+  const slabKeys   = ['1–15 km/h over','16–30 km/h over','31+ km/h over'];
+  const slabCounts = slabKeys.map(k => challans.filter(c=>c.slab===k).length);
+
+  new Chart(document.getElementById('challPieChart'), {
+    type:'doughnut',
+    data:{ labels:slabLabels, datasets:[{ data:slabCounts,
+      backgroundColor:['rgba(255,200,67,.75)','rgba(255,140,66,.75)','rgba(255,77,106,.8)'],
+      borderColor:['#ffc843','#ff8c42','#ff4d6a'], borderWidth:2, hoverOffset:6 }]},
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'55%',
+      plugins:{ legend:{ position:'bottom',
+        labels:{color:'#8896b0',font:{family:'Space Mono',size:10},padding:14,boxWidth:12}}}}
+  });
+
+  const classes = [...new Set(challans.map(c=>c.class))];
+  const totals  = classes.map(cl => challans.filter(c=>c.class===cl).reduce((a,c)=>a+c.fine,0));
+
+  new Chart(document.getElementById('challBarChart'), {
+    type:'bar',
+    data:{ labels:classes, datasets:[{
+      label:'Total fines (Rs.)', data:totals,
+      backgroundColor:classes.map(cl=>getCColor(cl).bg),
+      borderColor:classes.map(cl=>getCColor(cl).border),
+      borderWidth:1, borderRadius:6, borderSkipped:false }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:ctx=>`Rs. ${ctx.parsed.y.toLocaleString('en-IN')}`}}},
+      scales:{
+        x:{ticks:{color:'#8896b0',font:{family:'Space Mono',size:11}},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'#8896b0',font:{family:'Space Mono',size:10},
+            callback:v=>'Rs.'+v.toLocaleString('en-IN')},
+          grid:{color:'rgba(255,255,255,.04)'}}}}
+  });
+}
+
+function fillChallanCards(challans) {
+  if (!challans.length) {
+    document.getElementById('challanCards').innerHTML='<div class="empty"><div class="empty-ico">✅</div>No challans issued</div>';
+    return;
+  }
+  function sc(slab) { return slab==='1–15 km/h over'?'slab1':slab==='16–30 km/h over'?'slab2':'slab3'; }
+  document.getElementById('challanCards').innerHTML = challans.map((c,i) => {
+    const s   = sc(c.slab);
+    const bc  = BADGE_MAP[c.class]||'badge-car';
+    const isH = ['bus','truck'].includes(c.class);
+    return `<div class="challan-card" style="animation-delay:${i*.06}s">
+      <div class="challan-card-header ${s}">
+        <div class="challan-id">Challan #${String(i+1).padStart(3,'0')} · Frame ${String(c.frame).padStart(5,'0')}</div>
+        <div class="challan-fine ${s}">Rs. ${c.fine.toLocaleString('en-IN')}</div>
+      </div>
+      <div class="challan-body">
+        <div class="challan-row"><span class="challan-key">Vehicle</span><span class="challan-val"><span class="badge ${bc}">${c.class}</span></span></div>
+        <div class="challan-row"><span class="challan-key">Track ID</span><span class="challan-val">#${c.track_id}</span></div>
+        <div class="challan-row"><span class="challan-key">Recorded speed</span><span class="challan-val" style="color:var(--red)">${c.speed_kmh} km/h</span></div>
+        <div class="challan-row"><span class="challan-key">Speed limit</span><span class="challan-val">${c.limit_kmh} km/h</span></div>
+        <div class="challan-row"><span class="challan-key">Over limit by</span><span class="challan-val" style="color:var(--orange)">+${c.over_by} km/h</span></div>
+        <div class="challan-row"><span class="challan-key">Violation slab</span><span class="challan-val"><span class="badge badge-${s}">${c.slab}</span></span></div>
+      </div>
+      <div class="challan-footer">
+        <div class="challan-surcharge">Base Rs.${c.base_fine.toLocaleString('en-IN')}
+          ${isH?`+ Surcharge <span>Rs.${c.surcharge.toLocaleString('en-IN')}</span>`:''}
+        </div>
+        ${isH?'<span class="badge badge-heavy">Heavy +25%</span>':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function fillChallanTable(challans) {
+  if (!challans.length) {
+    document.getElementById('challanTable').innerHTML='<div class="empty">No data</div>'; return;
+  }
+  function sc(slab) { return 'badge-'+(slab==='1–15 km/h over'?'slab1':slab==='16–30 km/h over'?'slab2':'slab3'); }
+  const rows = challans.map((c,i) => {
+    const isH = ['bus','truck'].includes(c.class);
+    return `<tr>
+      <td class="mono dim">${String(i+1).padStart(3,'0')}</td>
+      <td class="mono dim">F-${String(c.frame).padStart(5,'0')}</td>
+      <td class="mono" style="font-weight:700">#${c.track_id}</td>
+      <td><span class="badge ${BADGE_MAP[c.class]||'badge-car'}">${c.class}</span></td>
+      <td class="mono" style="color:var(--red)">${c.speed_kmh}</td>
+      <td class="mono dim">${c.limit_kmh}</td>
+      <td class="mono" style="color:var(--orange)">+${c.over_by}</td>
+      <td><span class="badge ${sc(c.slab)}">${c.slab}</span></td>
+      <td class="mono dim">Rs.${c.base_fine.toLocaleString('en-IN')}</td>
+      <td class="mono" style="color:var(--indigo)">${isH?`Rs.${c.surcharge.toLocaleString('en-IN')}`:'—'}</td>
+      <td class="mono" style="font-weight:700;color:var(--yellow)">Rs.${c.fine.toLocaleString('en-IN')}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('challanTable').innerHTML=`<table class="vt">
+    <thead><tr>
+      <th>#</th><th>Frame</th><th>ID</th><th>Class</th>
+      <th>Speed</th><th>Limit</th><th>Over by</th>
+      <th>Slab</th><th>Base fine</th><th>Surcharge</th><th>Total fine</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+/* ── Challan boot ── */
+(function() {
+  const challans = computeChallanData();
+  fillChallanKPIs(challans);
+  fillSlabGrid(challans);
+  fillRevByClass(challans);
+  buildChallanCharts(challans);
+  fillChallanCards(challans);
+  fillChallanTable(challans);
+  document.getElementById('challGeneratedAt').textContent = 'generated: ' + new Date().toLocaleString();
+})();
+
+</script>
+</body>
+</html>
