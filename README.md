@@ -1,37 +1,166 @@
-# TrafficBrain AI 🚦
-Real-time vehicle detection, classification, and speed violation analysis using YOLO11 + OpenCV.
+# 🚦 TrafficBrain-AI
 
-## Features
-- Detects & tracks vehicles (car, bus, truck, motorcycle)
-- Counts vehicles crossing a configurable red line
-- Estimates live speed and flags violations with colour-coded boxes
-- 🔵 Slow  🟢 Safe  🟡 Caution  🔴 Violation
-- Supports multiple road types with class-aware speed limits
+### Real-Time Traffic Analysis & Speed Violation Detection using YOLOv11
 
-## Road type speed limits
+## 📌 Overview
 
-| Road type           | Car / Motorcycle | Bus / Truck |
-|---------------------|-----------------|-------------|
-| School / residential| 30 km/h         | 20 km/h     |
-| City road           | 50 km/h         | 40 km/h     |
-| Main road           | 60–80 km/h      | 50–60 km/h  |
-| Highway             | 100–120 km/h    | 80 km/h     |
+**TrafficBrain-AI** is an intelligent real-time traffic monitoring system that uses **YOLOv11 object detection** to:
 
-To switch road type, update `SPEED_LIMITS` in **Cell 4** of the notebook.
+* Detect and classify vehicles (cars, bikes, trucks, buses)
+* Count vehicles crossing a defined line
+* Estimate relative speed of vehicles
+* Detect speed violations using threshold logic
+* Provide visual alerts using color coding
+* Generate analytics and dashboard outputs
 
-## Setup
-```bash
-git clone https://github.com/your-username/TrafficBrain-AI.git
-cd TrafficBrain-AI
-pip install ultralytics opencv-python numpy
-jupyter notebook smart_traffic_analysis.ipynb
+---
+
+## 🎯 Key Features
+
+✅ **Real-Time Object Detection**
+
+* Uses YOLOv11s model for fast and accurate detection
+
+✅ **Vehicle Classification**
+
+* Classifies vehicles into:
+
+  * Cars 🚗
+  * Motorcycles 🏍️
+  * Trucks 🚛
+  * Buses 🚌
+
+✅ **Vehicle Counting System**
+
+* Counts vehicles crossing a predefined line
+* Maintains both **class-wise** and **total counts**
+
+✅ **Speed Estimation**
+
+* Calculates relative speed using frame tracking
+
+✅ **Speed Violation Detection 🚨**
+
+* Applies threshold logic
+* Color-coded system:
+
+  * 🟢 Green → Safe
+  * 🔴 Red → Violation
+
+✅ **Dashboard & Output Files**
+
+* Generates:
+
+  * `results.json` (data output)
+  * `dashboard_combined.html` (visual dashboard)
+
+---
+
+## 🧠 Tech Stack
+
+* **Python**
+* **OpenCV**
+* **YOLOv11 (Ultralytics)**
+* **NumPy**
+* **Jupyter Notebook**
+
+---
+
+## 📂 Project Structure
+
+```
+TrafficBrain-AI/
+│── demo_count_vehicles/
+│   └── test_videos/
+│
+│── smart_traffic_combined.ipynb   # Main implementation
+│── dashboard_combined.html        # Visualization dashboard
+│── results.json                   # Output data
+│── README.md
+│── .gitignore
 ```
 
-## How to run
-1. Update the video path in **Cell 3**
-2. Set your road type limits in `SPEED_LIMITS` in **Cell 4**
-3. Set `PIXELS_PER_METRE` in **Cell 4** for accurate speed readings
-4. Run all cells — press `Q` to quit
+---
 
-## Tech stack
-Python · OpenCV · YOLO11 · NumPy
+## ⚙️ How It Works
+
+1. Input video is processed frame-by-frame
+2. YOLOv11 detects and tracks vehicles
+3. Vehicles crossing a predefined line are counted
+4. Speed is estimated using object movement
+5. Violations are detected using threshold
+6. Results are visualized and saved
+
+---
+
+## 🚀 How to Run
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Riya1818/TrafficBrain-AI.git
+cd TrafficBrain-AI
+```
+
+### 2. Install dependencies
+
+```bash
+pip install ultralytics opencv-python numpy
+```
+
+### 3. Run the notebook
+
+```bash
+jupyter notebook
+```
+
+Open:
+
+```
+smart_traffic_combined.ipynb
+```
+
+---
+
+## ⚠️ Note
+
+* Large files like:
+
+  * YOLO model (`.pt`)
+  * Video files (`.mp4`)
+    are not included due to GitHub size limits
+
+👉 You can download them separately and place in the project folder
+
+---
+
+## 📊 Output
+
+* Real-time annotated video feed
+* Vehicle count (class-wise + total)
+* Speed violation alerts
+* Dashboard visualization
+
+---
+
+## 👩‍💻 Contributors
+
+* **Riya Priyadarshini** – Vehicle Detection, Counting & Classification
+* **Bhumika** – Speed Analysis & Violation Detection
+
+---
+
+## 🌟 Future Improvements
+
+* Number plate recognition
+* Traffic density prediction using ML
+* Cloud-based deployment
+* Live CCTV integration
+
+---
+
+## 📌 Conclusion
+
+TrafficBrain-AI demonstrates how **AI + Computer Vision** can be used for smart traffic monitoring, improving road safety and enabling data-driven decision-making.
+
+---
