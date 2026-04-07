@@ -71,22 +71,35 @@ Violations
 Traffic patterns
 
 🧠 Tech Stack
+
 Python
+
 OpenCV
+
 YOLOv11 (Ultralytics)
+
 NumPy
+
 Jupyter Notebook
 
 📂 Project Structure
 
 TrafficBrain-AI/
+
 │── demo_count_vehicles/
+
 │   └── test_videos/
+
 │
+
 │── smart_traffic_combined.ipynb
+
 │── dashboard_combined.html
+
 │── results.json
+
 │── README.md
+
 │── .gitignore
 
 ⚙️ How It Works
@@ -103,21 +116,24 @@ Dashboard visualization generated
 🚀 How to Run
 
 1. Clone the repository
+
 git clone https://github.com/Riya1818/TrafficBrain-AI.git
 cd TrafficBrain-AI
+
 2. Install dependencies
+
 pip install ultralytics opencv-python numpy
+
 3. Run
+
 jupyter notebook
 
 Open:
 
 smart_traffic_combined.ipynb
-⚠️ Note
-
-Large files not included:
 
 YOLO model (.pt)
+
 Video files (.mp4)
 
 👉 Add them manually before running
