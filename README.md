@@ -19,35 +19,48 @@ Interactive analytics dashboard
 ✅ Real-Time Object Detection
 Uses YOLOv11s for fast, accurate detection
 Detects multiple vehicles simultaneously
+
 ✅ Vehicle Classification
 🚗 Cars
 🏍️ Motorcycles
 🚛 Trucks
 🚌 Buses
+
 ✅ Vehicle Counting System
+
 Counts vehicles crossing a predefined line
 Maintains:
 Class-wise count
 Total vehicle count
+
 ✅ Speed Estimation
+
 Tracks object movement across frames
 Estimates relative vehicle speed in real-time
+
 🚨 Speed Violation Detection
+
 Threshold-based logic
 Color-coded alerts:
 🟢 Safe
 🔴 Violation
-🧾 Challan (E-Ticketing) System — NEW 🚀
+
+🧾 Challan (E-Ticketing) System 
+
 Automatically generates challans for violating vehicles
 Stores:
 Vehicle type
 Speed
 Timestamp
-🛣️ Road Distribution Analysis — NEW 📊
+
+🛣️ Road Distribution Analysis
+
 Shows traffic composition:
 % of cars vs bikes vs trucks vs buses
 Useful for traffic planning & optimization
+
 📊 Dashboard & Output
+
 results.json → raw data
 dashboard_combined.html → visualization
 
@@ -56,13 +69,16 @@ Displays:
 Vehicle distribution
 Violations
 Traffic patterns
+
 🧠 Tech Stack
 Python
 OpenCV
 YOLOv11 (Ultralytics)
 NumPy
 Jupyter Notebook
+
 📂 Project Structure
+
 TrafficBrain-AI/
 │── demo_count_vehicles/
 │   └── test_videos/
